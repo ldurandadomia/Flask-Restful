@@ -1,0 +1,179 @@
+from restapp import api
+from flask import Flask
+from flask import abort
+from flask_restful import Resource, reqparse, fields, marshal
+from restapp import db, models
+
+
+class SetOfSwitches(Resource):
+    def get(self):
+        pass
+
+    def put(self, id):
+        pass
+
+    def delete(self, id):
+        pass
+
+    def post(self):
+        pass
+
+
+class SingleSwitch(Resource):
+    port_fields = {
+        'Name': fields.String,
+        'Speed': fields.String,
+        'Duplex': fields.String,
+        'Status': fields.String,
+        'uri': fields.Url('Port', absolute=True, scheme='http'),
+    }
+
+    switch_fields = {
+        'ManagementIP': fields.String,
+        'Name': fields.String,
+        'uri': fields.Url('Switch', absolute=True, scheme='http'),
+        'Ports': fields.List(fields.Nested(port_fields))
+    }
+
+    def __init__(self):
+        """Constructeur: liste les champs attendus dans le corps HTML"""
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('ManagementIP', type=str, required=True,
+                                   help='No Management provided',
+                                   location='json')
+        self.reqparse.add_argument('Name', type=str, default="no name",
+                                   location='json')
+        super(SingleSwitch, self).__init__()
+
+    def get(self, Switch_Id):
+        """affiche un switch de l'infrastructure ainsi que ses ports"""
+        try:
+            Switch = models.Switches.query.get(Switch_Id)
+        except:
+            abort(404)
+        #HasPort = True
+        #try:
+        #    AllSwitchPorts = models.Ports.query.filter_by(Switch_Id=Switch_Id).all()
+        #except:
+        #    HasPort = False
+        #Ports = []
+        #for Port in AllSwitchPorts:
+        #    Ports.append(Port.GetAllAttributes())
+        #if HasPort:
+        #    Switch['Ports'] = Ports
+        return {'Switch': marshal(Switch, SingleSwitch.switch_fields)}
+
+    def put(self, id):
+        pass
+
+    def delete(self, id):
+        pass
+
+    def post(self):
+        pass
+
+
+class SetOfPorts(Resource):
+    def __init__(self):
+        """Constructeur: liste les champs attendus dans le corps HTML"""
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('Name', type=str, required=True,
+                                   help='No port name provided',
+                                   location='json')
+        self.reqparse.add_argument('Speed', type=str, default="1000",
+                                   location='json')
+        self.reqparse.add_argument('Duplex', type=str, default="full",
+                                   location='json')
+        self.reqparse.add_argument('Status', type=str, default="disable",
+                                   location='json')
+        super(SetOfPorts, self).__init__()
+
+    def get(self, switch_id):
+        """affiche tous les ports d'un switch de l'infrastructure"""
+        try:
+            AllSwitchPorts = models.Ports.query.filter_by(Switch_Id=switch_id).all()
+        except:
+            abort(404)
+        return {'Ports': [marshal(Port.GetAllAttributes(), SinglePort.fields) for Port in AllSwitchPorts]}
+
+    def put(self, id):
+        pass
+
+    def delete(self, id):
+        pass
+
+    def post(self):
+        pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class SinglePort(Resource):
+    fields = {
+        'Name': fields.String,
+        'Speed': fields.String,
+        'Duplex': fields.String,
+        'Status': fields.String,
+        'uri': fields.Url('Port'),
+        'sw_uri': fields.Url('Switch')
+    }
+
+    def __init__(self):
+        """Constructeur: liste les champs attendus dans le corps HTML"""
+        self.reqparse = reqparse.RequestParser()
+        self.reqparse.add_argument('Name', type=str, required=True,
+                                   help='No port name provided',
+                                   location='json')
+        self.reqparse.add_argument('Speed', type=str, default="1000",
+                                   location='json')
+        self.reqparse.add_argument('Duplex', type=str, default="full",
+                                   location='json')
+        self.reqparse.add_argument('Status', type=str, default="disable",
+                                   location='json')
+        super(SinglePort, self).__init__()
+
+    def get(self, Switch_Id, port_id):
+        """affiche un des ports d'un switch de l'infrastructure"""
+        try:
+            Port = models.Ports.query.get(port_id)
+        except:
+            abort(404)
+        if Port.Switch_Id != Switch_Id:
+            abort(404)
+        return {'Port': marshal(Port, SinglePort.fields)}
+
+    def put(self, id):
+        pass
+
+    def delete(self, id):
+        pass
+
+    def post(self):
+        pass
+
+
+#api.add_resource(SetOfSwitches, '/todo/api/v2.0/Switches', endpoint='Switches')
+api.add_resource(SingleSwitch, '/todo/api/v2.0/Switches/<int:Switch_Id>', endpoint='Switch')
+api.add_resource(SetOfPorts, '/todo/api/v2.0/Switches/<int:switch_id>/Ports', endpoint='Ports')
+api.add_resource(SinglePort, '/todo/api/v2.0/Switches/<int:Switch_Id>/Ports/<int:port_id>', endpoint='Port')
